@@ -1,7 +1,8 @@
 import express, {json} from 'express'
 import cors from 'cors'
 import { MongoClient } from 'mongodb';
-import dotenv from "dotenv";
+import dotenv from 'dotenv';
+
 dotenv.config();
 
 
@@ -11,8 +12,9 @@ server.use(json());
 
 async function getDB(collection){
     try {
+        
         const mongoClient = new MongoClient(process.env.MONGO_URI);
-        console.log("ainda nao conectei")
+        
         await mongoClient.connect();
         console.log("agora eu ja conectei")
         const dbApiChatUol = mongoClient.db("ApiChatUol")
@@ -27,6 +29,7 @@ async function getDB(collection){
 
 }
 
+
 server.get('/participants', async (req,res) => {
     try {
           
@@ -37,7 +40,7 @@ server.get('/participants', async (req,res) => {
           mongoClient.close()
        } catch (error) {
           res.status(500).send('A culpa foi do estagiário')
-          //mongoClient.close()
+          mongoClient.close()
        }
   });
 
