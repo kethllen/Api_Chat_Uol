@@ -132,10 +132,10 @@ server.post('/participants', async (req,res) => {
     try {
         [mongoClient, dbApiChatUol] = await getDB();
         const messages = await dbApiChatUol.collection("messages").find( { $or: [ { to: 'Todos'}, { to: req.headers.user}, { from:req.headers.user} ] } ).toArray();
-        if(limit){
-            const messagesFilter = [messages].reverse().slice(0, limit)
+        if(messages.length > limit){
+            const messagesFilter = [messages].slice(messages.length-limit,messages.length)
             res.send(messagesFilter);
-            mongoClient.close();    
+            mongoClient.close();
         }else{
             res.send(messages);
             mongoClient.close();
