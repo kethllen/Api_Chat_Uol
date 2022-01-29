@@ -84,21 +84,66 @@ server.get('/participants', async (req,res) => {
        }
   });
 
-  server.delete('/participants/:id', async (req,res) => {
+server.delete('/messages/:id', async (req,res) => {
     let mongoClient, dbApiChatUol;
     const {id} = req.params;
     try {
          [mongoClient, dbApiChatUol] = await getDB();
-         await dbApiChatUol.collection("users").deleteOne({ _id: new ObjectId(id) });
-                  
-          res.send(200);
-          mongoClient.close();
+         const msg = await dbApiChatUol.collection("messages").findOne({ _id: new ObjectId(id) });
+         if(req.headers.user !== msg.from){
+            mongoClient.close();
+            return res.send(401);
+         }
+         if(msg){
+            await dbApiChatUol.collection("messages").deleteOne({ _id: new ObjectId(id) });
+            res.send(200);
+            mongoClient.close();
+         }else{
+            mongoClient.close();
+            return res.send(404);  
+         } 
        } catch (error) {
-          res.status(500).send('A culpa foi do estagiário que nao fez o DELETE de participantes correto')
+          res.status(500).send('A culpa foi do estagiário que nao fez o DELETE de mensagem correto')
           mongoClient.close()
        }
   });
-
+  server.put('/messages/:id', async (req,res) => {
+    let mongoClient, dbApiChatUol;
+    const validation = messageSchema.validate(req.body, { abortEarly: true });
+    const {id} = req.params;
+    if (validation.error) {
+      console.log(validation.error.details)
+      return res.send(422);
+    }
+    try {
+          [mongoClient, dbApiChatUol] = await getDB();
+          const user = await dbApiChatUol.collection("users").findOne({name: req.headers.user})
+          const msg = await dbApiChatUol.collection("messages").findOne({ _id: new ObjectId(id) });
+          if(!user){
+            mongoClient.close()
+            return res.send(422);
+          }
+          if(req.headers.user !== msg.from){
+            mongoClient.close();
+            return res.send(401);
+          }
+          if(msg){
+            const hora = dayjs().locale('pt-br').format('HH:mm:ss');
+            await dbApiChatUol.collection("messages").updateOne({ 
+                _id: msg._id 
+            }, { $set: {from: req.headers.user, ...req.body, time: hora} })
+            res.send(200);
+            mongoClient.close();
+         }else{
+            mongoClient.close();
+            return res.send(404);  
+         } 
+       } catch (error) {
+          res.status(500).send('A culpa foi do estagiário que nao fez o PUT de mensagem correto')
+          mongoClient.close()
+       }
+  });
+  
 server.post('/participants', async (req,res) => {
     let mongoClient, dbApiChatUol;
     const validation = participantSchema.validate(req.body, { abortEarly: true });
