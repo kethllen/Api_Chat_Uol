@@ -30,6 +30,7 @@ const messageSchema = joi.object(
 )
 
 
+
 async function getDB(){
     let mongoClient;
     try {
@@ -46,6 +47,25 @@ async function getDB(){
     }
 }
 
+async function removeUser(){
+    let mongoClient, dbApiChatUol;
+    try {
+        [mongoClient, dbApiChatUol] = await getDB();
+        const users = await dbApiChatUol.collection("users").find({}).toArray();         
+        users.map(async (user) => {if(parseInt(user.lastStatus) - Date.now() > 10000 )
+        {
+            await dbApiChatUol.collection("users").deleteOne({ _id: new ObjectId(user._id) });
+        }
+        }
+        );
+        mongoClient.close();
+       } catch (error) {
+          res.status(500).send('A culpa foi do estagiário que nao fez o remover usuario inativo correto')
+          mongoClient.close()
+       }
+}
+
+setInterval(() => removeUser,15000);
 
 server.get('/participants', async (req,res) => {
     let mongoClient, dbApiChatUol;
@@ -107,7 +127,7 @@ server.post('/participants', async (req,res) => {
     let limit = parseInt(req.query.limit);
     try {
         [mongoClient, dbApiChatUol] = await getDB();
-        const messages = await dbApiChatUol.collection("messages").find( { $or: [ { to: 'Todos'}, { to: req.headers.user} ] } ).toArray();
+        const messages = await dbApiChatUol.collection("messages").find( { $or: [ { to: 'Todos'}, { to: req.headers.user}, { from:req.headers.user} ] } ).toArray();
         if(limit){
             const messagesFilter = [messages].reverse().slice(0, limit)
             res.send(messagesFilter);
