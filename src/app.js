@@ -51,22 +51,29 @@ async function removeUser(){
     let mongoClient, dbApiChatUol;
     try {
         [mongoClient, dbApiChatUol] = await getDB();
-        const users = await dbApiChatUol.collection("users").find({}).toArray();         
-        users.map(async (user) => {if(parseInt(user.lastStatus) - Date.now() > 10000 )
-        {
-            await dbApiChatUol.collection("users").deleteOne({ _id: new ObjectId(user._id) });
-        }
-        }
-        );
-        mongoClient.close();
+        const users = await dbApiChatUol.collection("users").find({}).toArray();
+        console.log("to entrado no set interval")
+        if(users){
+            
+            users.map(async (user) => { 
+                if(Date.now() - parseInt(user.lastStatus) > 10000)
+                {
+                    console.log("entrei no if do set interval")
+                    await dbApiChatUol.collection("users").deleteOne({ _id: new ObjectId(user._id) });
+                    console.log("sai do await")
+                    const hora = dayjs().locale('pt-br').format('HH:mm:ss');
+                    const messages = await dbApiChatUol.collection("messages").insertOne({from: user.name, to: 'Todos', text: 'sai da sala...', type: 'status', time: hora});
+                }
+            });
+        }         
        } catch (error) {
           res.status(500).send('A culpa foi do estagiário que nao fez o remover usuario inativo correto')
           mongoClient.close()
        }
 }
-
-setInterval(() => removeUser,15000);
-
+        
+setInterval(() => removeUser(),15000);
+        
 server.get('/participants', async (req,res) => {
     let mongoClient, dbApiChatUol;
     try {
