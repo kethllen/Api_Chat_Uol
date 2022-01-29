@@ -52,19 +52,16 @@ async function removeUser(){
     try {
         [mongoClient, dbApiChatUol] = await getDB();
         const users = await dbApiChatUol.collection("users").find({}).toArray();
-        console.log("to entrado no set interval")
         if(users){
-            
-            users.map(async (user) => { 
+            for (let user of users) {
                 if(Date.now() - parseInt(user.lastStatus) > 10000)
                 {
-                    console.log("entrei no if do set interval")
                     await dbApiChatUol.collection("users").deleteOne({ _id: new ObjectId(user._id) });
-                    console.log("sai do await")
                     const hora = dayjs().locale('pt-br').format('HH:mm:ss');
                     const messages = await dbApiChatUol.collection("messages").insertOne({from: user.name, to: 'Todos', text: 'sai da sala...', type: 'status', time: hora});
                 }
-            });
+            }
+            mongoClient.close();
         }         
        } catch (error) {
           res.status(500).send('A culpa foi do estagiário que nao fez o remover usuario inativo correto')
